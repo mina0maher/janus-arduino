@@ -18,7 +18,8 @@ int angle = 90;
 
 //Define the maximum distance the sensor can detect
 #define maxDistance 15
-bool flag = true;
+bool isGateClosed = true;
+bool isCarDetected = false;
 LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
 Servo myservo;
 
@@ -56,38 +57,47 @@ void loop() {
 
   //If the distance is less than or equal to the maximum distance, open the servo
   if (distance <= maxDistance) {
-    if (flag) {
+    if (isGateClosed&&!isCarDetected) {
       printOnScreen(" hi car number  ", " user your card ");
        Serial.println("car detected");
+       isCarDetected =true;
     }
       
-    if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial() && flag) {
+    if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial() && isGateClosed) {
       printOnScreen("   thank you    ", "enjoy your trip ");
       openGate();
-      flag = false;
+      isGateClosed = false;
     }
-    if (Serial.available()) {    //wait for data available
-          String str = Serial.readString();  //read until timeout
-          str.trim();                        // remove any \r \n whitespace at the end of the String
-          if (str == "open gate") {
-            openGate();
-          } else if(str == "ticket not found" ) {
-            Serial.println("car detected");
-          }else if(str == "error"){
-            Serial.println("car detected");
-          }
-      }
+    
+    if(isGateClosed){
+        if((!Serial.available())) {return;}  //wait for data available
+        
+              String str = Serial.readString(); 
+              str.trim();                        // remove any \r \n whitespace at the end of the String
+              if (str == "open gate") {
+                openGate();
+                isGateClosed=false;
+              } else if(str == "ticket not found" ) {
+                isCarDetected=false;
+              }else if(str == "error"){
+                isCarDetected=false;
+              }
+    }
     delay(500);
   }else if(distance >=70){
     
   
   
   }else {//If the distance is greater than the maximum distance, close the servo
-    if(flag == false){
+    if(isGateClosed == false){
       delay(3000);
       closeGate();
     }
-    flag = true;
+    if(Serial.available()){
+      String str = Serial.readString(); 
+    }
+    isGateClosed = true;
+    isCarDetected=false;
     printOnScreen("   welcome to   ", "   JANUS gates  ");
     delay(500);
   }
